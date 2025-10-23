@@ -1,0 +1,12 @@
+.wrap {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+.sidebar { 
+    position: sticky; top: 16px; 
+}
+.content {
+     min-height: 60vh; 
+}
