@@ -1,33 +1,38 @@
-'use client'
+'use client';
 
-import { Formik, Form, Field, ErrorMessage } from 'formik'
-import * as Yup from 'yup'
-import { useRouter } from 'next/navigation'
-import css from './NoteForm.module.css'
-import { createNote } from '@/lib/api'
+import { Formik, Form, Field, ErrorMessage } from 'formik';
+import * as Yup from 'yup';
+import { useRouter } from 'next/navigation';
+import css from './NoteForm.module.css';
+import { createNote } from '@/lib/api';
+import { useNoteStore, initialDraft } from '@/lib/store/noteStore';
+import type { NoteTag } from '@/types/note';
 
-import type { NoteTag } from '@/types/note'
-import { initialDraft, useNoteStore } from '@/lib/store/noteStore'
+type FormValues = { title: string; content: string; tag: NoteTag };
 
-type NoteFormProps = { onCreated?: () => void }
-
-type FormValues = { title: string; content: string; tag: NoteTag }
+export type NoteFormProps = {
+  onCreated?: () => void;
+  onClose?: () => void; 
+};
 
 const Schema = Yup.object({
   title: Yup.string().min(3, 'Min 3').max(50, 'Max 50').required('Required'),
   content: Yup.string().max(500, 'Max 500'),
-  tag: Yup.mixed<NoteTag>()
-    .oneOf(['Todo', 'Work', 'Personal', 'Meeting', 'Shopping'])
-    .required('Required'),
-})
+  tag: Yup.mixed<NoteTag>().oneOf(['Todo','Work','Personal','Meeting','Shopping']).required('Required'),
+});
 
-export default function NoteForm({ onCreated }: NoteFormProps) {
-  const router = useRouter()
-  const draft = useNoteStore((s) => s.draft)
-  const setDraft = useNoteStore((s) => s.setDraft)
-  const clearDraft = useNoteStore((s) => s.clearDraft)
+export default function NoteForm({ onCreated, onClose }: NoteFormProps) {
+  const router = useRouter();
+  const draft = useNoteStore(s => s.draft);
+  const setDraft = useNoteStore(s => s.setDraft);
+  const clearDraft = useNoteStore(s => s.clearDraft);
 
-  const initialValues: FormValues = draft ?? initialDraft
+  const initialValues: FormValues = draft ?? initialDraft;
+
+  const goBackOrClose = () => {
+    if (onClose) onClose();
+    else router.back();
+  };
 
   return (
     <Formik<FormValues>
@@ -36,30 +41,26 @@ export default function NoteForm({ onCreated }: NoteFormProps) {
       enableReinitialize
       onSubmit={async (values, { setSubmitting, resetForm }) => {
         try {
-          await createNote(values)
-          clearDraft()
-          resetForm()
-          onCreated?.()
-          router.back()
+          await createNote(values);
+          clearDraft();
+          resetForm();
+          onCreated?.();
+          goBackOrClose();   
         } catch {
-          alert('Помилка під час створення нотатки')
+          alert('Помилка під час створення нотатки');
         } finally {
-          setSubmitting(false)
+          setSubmitting(false);
         }
       }}
     >
       {({ isSubmitting, isValid, values, setFieldValue }) => {
         const handleChange =
           (name: keyof FormValues) =>
-          (
-            e:
-              | React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-              | React.ChangeEvent<HTMLSelectElement>
-          ) => {
-            const v = e.target.value
-            setFieldValue(name, v)
-            setDraft({ [name]: v } as Partial<FormValues>)
-          }
+          (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+            const v = e.target.value;
+            setFieldValue(name, v);
+            setDraft({ [name]: v } as Partial<FormValues>);
+          };
 
         return (
           <Form className={css.form}>
@@ -113,7 +114,7 @@ export default function NoteForm({ onCreated }: NoteFormProps) {
               <button
                 type="button"
                 className={css.cancelButton}
-                onClick={() => router.back()}
+                onClick={goBackOrClose} 
               >
                 Cancel
               </button>
@@ -126,8 +127,8 @@ export default function NoteForm({ onCreated }: NoteFormProps) {
               </button>
             </div>
           </Form>
-        )
+        );
       }}
     </Formik>
-  )
+  );
 }
