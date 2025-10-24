@@ -3,21 +3,21 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useDebounce } from 'use-debounce';
+import Link from 'next/link';
 import css from './page.module.css';
 
 import { getNotes } from '@/lib/api';
 import type { Note } from '@/types/note';
+
 import SearchBox from '@/components/SearchBox/SearchBox';
 import Pagination from '@/components/Pagination/Pagination';
 import NoteList from '@/components/NoteList/NoteList';
-import Modal from '@/components/Modal/Modal';
-import NoteForm from '@/components/NoteForm/NoteForm';
 
 interface NotesClientProps {
   initialPage: number;
   perPage: number;
   initialSearch: string;
-  tag?: string;
+  tag?: string; 
 }
 
 export default function NotesClient({
@@ -26,12 +26,11 @@ export default function NotesClient({
   initialSearch,
   tag,
 }: NotesClientProps) {
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [page, setPage] = useState(initialPage);
   const [search, setSearch] = useState(initialSearch);
   const [debouncedSearch] = useDebounce(search, 400);
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ['notes', debouncedSearch, page, tag ?? ''],
     queryFn: () => getNotes({ page, perPage, search: debouncedSearch, tag }),
     placeholderData: (prev) => prev,
@@ -45,11 +44,6 @@ export default function NotesClient({
     setSearch(value);
   };
 
-  const handleCreated = async () => {
-    await refetch();
-    setIsModalOpen(false);
-  };
-
   return (
     <div className={css.app}>
       <header className={css.toolbar}>
@@ -59,30 +53,19 @@ export default function NotesClient({
           <Pagination
             pageCount={totalPages}
             currentPage={page}
-            onPageChange={(p) => setPage(p)}
+            onPageChange={setPage}
           />
         )}
 
-        <button className={css.button} onClick={() => setIsModalOpen(true)}>
+        <Link href="/notes/action/create" className={css.button}>
           Create note +
-        </button>
+        </Link>
       </header>
 
       {isLoading && <p>Завантаження...</p>}
       {isError && <p>Помилка при завантаженні</p>}
 
-      {notes.length > 0 && (
-        <NoteList
-          notes={notes}
-          queryKey={['notes', debouncedSearch, page, tag ?? '']}
-        />
-      )}
-
-      {isModalOpen && (
-        <Modal onClose={() => setIsModalOpen(false)}>
-          <NoteForm onClose={() => setIsModalOpen(false)} onCreated={handleCreated} />
-        </Modal>
-      )}
+      {notes.length > 0 && <NoteList notes={notes} />}
     </div>
   );
 }
